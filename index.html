@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>webhook-tools</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            margin: 0;
+            padding: 0;
+            color: #e1e1e1;
+        }
+        .container {
+            max-width: 600px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: #1f1f1f;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #d5a6f0;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 2px solid #6a0dad;
+            border-radius: 8px;
+            background-color: #292929;
+            color: #e1e1e1;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 120px;
+            resize: vertical;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #6a0dad;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #8a2be2;
+        }
+        p {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        .success {
+            color: #4caf50;
+        }
+        .error {
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Send a Message</h1>
+        <form id="discord-form">
+            <input type="password" id="webhook-url" placeholder="Enter Discord Webhook URL" required>
+            <textarea id="message" placeholder="Enter your message here" required></textarea>
+            <button type="submit">Send Message</button>
+            <p id="response"></p>
+        </form>
+
+        <h1>Spam Message</h1>
+        <input type="password" id="spam-webhook-url" placeholder="Enter Discord Webhook URL" required>
+        <textarea id="spam-message" placeholder="Enter your message here" required></textarea>
+        <button id="start-spam">Start Spamming</button>
+        <button id="stop-spam" disabled>Stop Spamming</button>
+        <p id="spam-status"></p>
+
+        <h1>Delete Webhook</h1>
+        <input type="password" id="delete-webhook-url" placeholder="Enter Discord Webhook URL" required>
+        <button id="delete-webhook">Delete Webhook</button>
+        <p id="delete-response"></p>
+    </div>
+
+    <script>
+        let spamInterval;
+
+        function handleResponse(response, responseElement) {
+            if (response && response.ok) {
+                responseElement.innerText = 'Operation successful!';
+                responseElement.className = 'success';
+            } else {
+                responseElement.innerText = 'Operation failed.';
+                responseElement.className = 'error';
+            }
+        }
+
+        document.getElementById('discord-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const webhookURL = document.getElementById('webhook-url').value;
+            const message = document.getElementById('message').value;
+
+            fetch(webhookURL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: message })
+            })
+            .then(response => handleResponse(response, document.getElementById('response')))
+            .catch(() => handleResponse(null, document.getElementById('response')));
+        });
+
+        document.getElementById('start-spam').addEventListener('click', function() {
+            const webhookURL = document.getElementById('spam-webhook-url').value;
+            const message = document.getElementById('spam-message').value;
+
+            if (!webhookURL || !message) {
+                alert('Please enter both the webhook URL and a message.');
+                return;
+            }
+
+            spamInterval = setInterval(() => {
+                fetch(webhookURL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: message })
+                })
+                .catch(() => {
+                    document.getElementById('spam-status').innerText = 'Error spamming the webhook.';
+                    document.getElementById('spam-status').className = 'error';
+                    clearInterval(spamInterval);
+                });
+            }, 1000);
+
+            document.getElementById('start-spam').disabled = true;
+            document.getElementById('stop-spam').disabled = false;
+            document.getElementById('spam-status').innerText = 'Operation successful!';
+            document.getElementById('spam-status').className = 'success';
+        });
+
+        document.getElementById('stop-spam').addEventListener('click', function() {
+            clearInterval(spamInterval);
+            document.getElementById('start-spam').disabled = false;
+            document.getElementById('stop-spam').disabled = true;
+            document.getElementById('spam-status').innerText = 'Spamming stopped.';
+            document.getElementById('spam-status').className = 'success';
+        });
+
+        document.getElementById('delete-webhook').addEventListener('click', function() {
+            const webhookURL = document.getElementById('delete-webhook-url').value;
+
+            fetch(webhookURL, { method: 'DELETE' })
+            .then(response => handleResponse(response, document.getElementById('delete-response')))
+            .catch(() => handleResponse(null, document.getElementById('delete-response')));
+        });
+    </script>
+</body>
+</html>
